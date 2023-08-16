@@ -4,7 +4,6 @@ const canvas = document.getElementById("canvas");
 const context = canvas.getContext("2d");
 
 let ball;
-let ballMass;
 let origin;
 let originVelocityLeftX;
 let originVelocityRightX;
@@ -21,7 +20,6 @@ function init() {
   smallChange = 0.0
   angle = (Math.PI / 2) * 2;
   gravity = 0.1;
-  ballMass = 0.2;
   angleVelocity = 0.0;
   angleAcceleration = 0;
   requiredElapsed = 1.0 / 60;
@@ -75,7 +73,9 @@ function animate(now) {
       origin.x += originVelocityRightX * elapsed;
     }
 
-    let force = gravity * Math.sin(angle) * ballMass;
+    let force = gravity * Math.sin(angle);
+
+    //case at begging when it is exactly 180°
     if (angle === 3.141592653589793 && force === 2.4492935982947068e-18) {
       if (Math.random() > 0) {
         angle += 0.1;
@@ -87,13 +87,13 @@ function animate(now) {
     angleAcceleration = (-1 * force) / len;
     if (originVelocityLeftX < 0) {
       console.log("left");
-      smallChange = -0.1;
+      smallChange = -0.05;
     }
     if (originVelocityRightX > 0) {
       console.log("right");
-      smallChange = 0.1;
+      smallChange = 0.05;
     }
-    angle += smallChange
+    angleVelocity += smallChange
     smallChange = 0.0
     angleVelocity += angleAcceleration * elapsed;
     angle += angleVelocity;
