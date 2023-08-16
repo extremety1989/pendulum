@@ -3,7 +3,7 @@ import "./style.css";
 const canvas = document.getElementById("canvas");
 const context = canvas.getContext("2d");
 
-let ball;
+let bob;
 let origin;
 let originVelocityLeftX;
 let originVelocityRightX;
@@ -18,13 +18,13 @@ let smallChange
 
 function init() {
   smallChange = 0.0
-  angle = (Math.PI / 2) * 2;
+  angle = Math.PI / 2;
   gravity = 0.1;
   angleVelocity = 0.0;
   angleAcceleration = 0;
   requiredElapsed = 1.0 / 60;
   len = 250;
-  ball = { x: 0, y: len };
+  bob = { x: 0, y: len };
   originVelocityLeftX = 0;
   originVelocityRightX = 0;
 
@@ -36,10 +36,10 @@ function init() {
 function animate(now) {
   context.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Line from origin to ball
+  // Line from origin to bob
   context.beginPath();
   context.moveTo(origin.x, origin.y);
-  context.lineTo(ball.x, ball.y);
+  context.lineTo(bob.x, bob.y);
   context.strokeStyle = "blue";
   context.stroke();
 
@@ -50,9 +50,9 @@ function animate(now) {
   context.strokeStyle = "black";
   context.stroke();
 
-  // Ball
+  // bob
   context.beginPath();
-  context.arc(ball.x, ball.y, 20, 0, 2 * Math.PI);
+  context.arc(bob.x, bob.y, 20, 0, 2 * Math.PI);
   context.fillStyle = "red";
   context.fill();
   context.stroke();
@@ -63,9 +63,9 @@ function animate(now) {
   let elapsed = now - lastTime;
 
   if (elapsed > requiredElapsed) {
-    if (angle >= 6.283185307179586 || angle <= -6.283185307179586) {
-      angle = 0;
-    }
+    // if (angle >= 6.283185307179586 || angle <= -6.283185307179586) {
+    //   angle = 0;
+    // }
     if (origin.x - 100 > 0) {
       origin.x += originVelocityLeftX * elapsed;
     }
@@ -74,26 +74,17 @@ function animate(now) {
     }
 
     let force = gravity * Math.sin(angle);
-
-    //case at begging when it is exactly 180°
-    if (angle === 3.141592653589793 && force === 2.4492935982947068e-18) {
-      if (Math.random() > 0) {
-        angle += 0.1;
-      } else {
-        angle -= 0.1;
-      }
-    }
-
     angleAcceleration = (-1 * force) / len;
+
     if (originVelocityLeftX < 0) {
       console.log("left");
-      smallChange = -0.05;
+      smallChange = -0.4;
     }
     if (originVelocityRightX > 0) {
       console.log("right");
-      smallChange = 0.05;
+      smallChange = 0.4;
     }
-    angleVelocity += smallChange
+    angle += smallChange 
     smallChange = 0.0
     angleVelocity += angleAcceleration * elapsed;
     angle += angleVelocity;
@@ -108,10 +99,10 @@ function animate(now) {
     //console.log(Math.floor(angle * (180 / Math.PI)));
     
     
-    ball.x = len * Math.sin(angle) + origin.x;
-    ball.y = len * Math.cos(angle) + origin.y;
+    bob.x = len * Math.sin(angle) + origin.x;
+    bob.y = len * Math.cos(angle) + origin.y;
 
-    angleVelocity *= 0.99;
+    angleVelocity *= 0.95;
     lastTime = now;
   }
   requestAnimationFrame(animate);
@@ -164,8 +155,8 @@ function resize() {
   context.canvas.height = window.innerHeight;
   origin.x = canvas.width / 2;
   origin.y = canvas.height / 2;
-  ball.x = len * Math.sin(angle) + origin.x;
-  ball.y = len * Math.cos(angle) + origin.y;
+  bob.x = len * Math.sin(angle) + origin.x;
+  bob.y = len * Math.cos(angle) + origin.y;
 }
 
 window.addEventListener("resize", resize);
