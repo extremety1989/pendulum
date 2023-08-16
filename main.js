@@ -96,7 +96,7 @@ function animate(now) {
     angle += smallChange
     smallChange = 0.0
     angleVelocity += angleAcceleration * elapsed;
-    //angle += angleVelocity;
+    angle += angleVelocity;
 
     context.font = "30px Arial";
     context.fillText(
