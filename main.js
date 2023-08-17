@@ -66,6 +66,11 @@ function animate(now) {
     // if (angle >= 6.283185307179586 || angle <= -6.283185307179586) {
     //   angle = 0;
     // }
+    if (angle >= 6.283185307179586){
+      angle -= 6.283185307179586
+    }else if (angle <= -6.283185307179586){
+      angle += 6.283185307179586
+    }
     if (origin.x - 100 > 0) {
       origin.x += originVelocityLeftX * elapsed;
     }
