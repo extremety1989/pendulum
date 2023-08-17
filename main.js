@@ -74,17 +74,16 @@ function animate(now) {
     }
 
     let force = gravity * Math.sin(angle);
+
     angleAcceleration = (-1 * force) / len;
  
-    // if (originVelocityLeftX < 0) {
-    //   console.log("left");
-    //   smallChange = -0.4;
-    // }
-    // if (originVelocityRightX > 0) {
-    //   console.log("right");
-    //   smallChange = 0.4;
-    // }
-    // angle += smallChange 
+    if (originVelocityLeftX < 0) {
+      smallChange = -0.015;
+    }
+    if (originVelocityRightX > 0) {
+      smallChange = 0.015;
+    }
+    angleVelocity += smallChange 
     smallChange = 0.0
     angleVelocity += angleAcceleration * elapsed;
     angle += angleVelocity;
