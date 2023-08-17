@@ -63,14 +63,7 @@ function animate(now) {
   let elapsed = now - lastTime;
 
   if (elapsed > requiredElapsed) {
-    // if (angle >= 6.283185307179586 || angle <= -6.283185307179586) {
-    //   angle = 0;
-    // }
-    if (angle >= 6.283185307179586){
-      angle -= 6.283185307179586
-    }else if (angle <= 0){
-      angle += 6.283185307179586
-    }
+
     if (origin.x - 100 > 0) {
       origin.x += originVelocityLeftX * elapsed;
     }
@@ -92,6 +85,12 @@ function animate(now) {
     smallChange = 0.0
     angleVelocity += angleAcceleration * elapsed;
     angle += angleVelocity;
+
+    if (angle >= 6.283185307179586){
+      angle -= 6.283185307179586
+    }else if (angle <= -6.283185307179586){
+      angle += 6.283185307179586
+    }
 
     context.font = "30px Arial";
     context.fillText(
