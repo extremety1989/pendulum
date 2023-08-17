@@ -8,27 +8,39 @@ let origin;
 let originVelocityLeftX;
 let originVelocityRightX;
 let angle;
-let angleVelocity;
-let angleAcceleration;
-let len;
+
+
 let lastTime;
 let requiredElapsed;
-let gravity;
 let smallChange
+const PI = 3.141592653589793
+let L;
+let g;
+let I;
+let m;
+let R;
+let T;
+let t
+
 
 function init() {
-  smallChange = 0.0
-  angle = Math.PI / 2;
-  gravity = 0.1;
-  angleVelocity = 0.0;
-  angleAcceleration = 0;
+  smallChange = 0
+  t = 0
+  origin = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+ 
   requiredElapsed = 1.0 / 60;
-  len = 250;
-  bob = { x: 0, y: len };
   originVelocityLeftX = 0;
   originVelocityRightX = 0;
 
-  origin = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  angle = PI/4
+  
+  m = 0.6
+  g = 9.81;
+  L = 250
+  R = 1/2 * L
+  I = 1/3 * m * Math.pow(L, 2)
+  T = 2 * PI * Math.sqrt(I / (m * g * R))
+  bob = { x: 0, y: L };
   resize();
   animate();
 }
@@ -71,27 +83,17 @@ function animate(now) {
       origin.x += originVelocityRightX * elapsed;
     }
 
-    let force = gravity * Math.sin(angle);
-
-    angleAcceleration = (-1 * force) / len;
- 
     if (originVelocityLeftX < 0) {
-      smallChange = -0.02;
+      smallChange = 0.1;
     }
-    if (originVelocityRightX > 0) {
-      smallChange = 0.02;
-    }
-    angleVelocity += smallChange 
-    smallChange = 0.0
-    angleVelocity += angleAcceleration * elapsed;
-    angle += angleVelocity;
-
-    if (angle >= 6.283185307179586){
-      angle -= 6.283185307179586
-    }else if (angle <= -6.283185307179586){
-      angle += 6.283185307179586
+    else if (originVelocityRightX > 0) {
+      smallChange = 0.1;
     }
 
+    smallChange = 0
+    t += 1
+    angle = Math.cos((((2 * PI) / T) * t ) + 0.1);
+  
     context.font = "30px Arial";
     context.fillText(
       JSON.stringify(Math.floor(angle * (180 / Math.PI))) + "°",
@@ -102,10 +104,10 @@ function animate(now) {
     //console.log(Math.floor(angle * (180 / Math.PI)));
     
     
-    bob.x = len * Math.sin(angle) + origin.x;
-    bob.y = len * Math.cos(angle) + origin.y;
+    bob.x = L * Math.sin(angle) + origin.x;
+    bob.y = L * Math.cos(angle) + origin.y;
 
-    angleVelocity *= 0.95;
+    
     lastTime = now;
   }
   requestAnimationFrame(animate);
@@ -158,8 +160,8 @@ function resize() {
   context.canvas.height = window.innerHeight;
   origin.x = canvas.width / 2;
   origin.y = canvas.height / 2;
-  bob.x = len * Math.sin(angle) + origin.x;
-  bob.y = len * Math.cos(angle) + origin.y;
+  bob.x = L * Math.sin(angle) + origin.x;
+  bob.y = L * Math.cos(angle) + origin.y;
 }
 
 window.addEventListener("resize", resize);
