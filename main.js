@@ -68,7 +68,7 @@ function animate(now) {
     // }
     if (angle >= 6.283185307179586){
       angle -= 6.283185307179586
-    }else if (angle <= -6.283185307179586){
+    }else if (angle <= 0){
       angle += 6.283185307179586
     }
     if (origin.x - 100 > 0) {
@@ -83,10 +83,10 @@ function animate(now) {
     angleAcceleration = (-1 * force) / len;
  
     if (originVelocityLeftX < 0) {
-      smallChange = -0.015;
+      smallChange = -0.02;
     }
     if (originVelocityRightX > 0) {
-      smallChange = 0.015;
+      smallChange = 0.02;
     }
     angleVelocity += smallChange 
     smallChange = 0.0
