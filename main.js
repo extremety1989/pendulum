@@ -128,10 +128,10 @@ window.addEventListener("touchmove", (event) => {
 
   if (deltaX > 0) {
     // Sliding to the right
-    originVelocityRightX = 0.1;
+    originVelocityRightX = 0.4;
   } else if (deltaX < 0) {
     // Sliding to the left
-    originVelocityLeftX = -0.1;
+    originVelocityLeftX = -0.4;
   }
   startX = currentX;
 });
