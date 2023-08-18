@@ -12,7 +12,6 @@ let angle;
 
 let lastTime;
 let requiredElapsed;
-let smallChange
 const PI = 3.141592653589793
 let L;
 let g;
@@ -24,7 +23,7 @@ let t
 
 
 function init() {
-  smallChange = 0
+
   t = 0
   origin = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
  
@@ -84,19 +83,12 @@ function animate(now) {
       origin.x += originVelocityRightX * elapsed;
     }
 
-    if (originVelocityLeftX < 0) {
-      smallChange = 0.1;
-    }
-    else if (originVelocityRightX > 0) {
-      smallChange = 0.1;
-    }
 
-    smallChange = 0
     t += 0.01 * elapsed
 
 
     angle = Math.cos((((2 * PI) / T) * t ) + 0.1);
-    
+
     context.font = "30px Arial";
     context.fillText(
       JSON.stringify(Math.floor(angle * (180 / Math.PI))) + "°",
@@ -128,10 +120,10 @@ window.addEventListener("touchmove", (event) => {
 
   if (deltaX > 0) {
     // Sliding to the right
-    originVelocityRightX = 0.4;
+    originVelocityRightX = 1;
   } else if (deltaX < 0) {
     // Sliding to the left
-    originVelocityLeftX = -0.4;
+    originVelocityLeftX = -1;
   }
   startX = currentX;
 });
