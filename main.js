@@ -3,49 +3,30 @@ import "./style.css";
 const canvas = document.getElementById("canvas");
 const context = canvas.getContext("2d");
 
-let bob;
-let origin;
-let originVelocityLeftX;
-let originVelocityRightX;
-let angle;
+
+let originVelocityLeftX = 0;
+let originVelocityRightX = 0;
 
 
-let lastTime;
-let requiredElapsed;
+let angularVelocity = 0;
+let lastTime = 0;
+
 const PI = 3.141592653589793
-let L;
-let g;
-let I;
-let m;
-let R;
-let T;
-let t
+let angle = PI / 2;
 
+const Length = 250
+const gravity = 9.81
+let damping = 0.98; 
 
-function init() {
+const bobRadius = 20
+const Mass = 1; // Adjust the mass as needed
+const momentOfInertia = (Mass * bobRadius * bobRadius) / 12;
+const origin = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+const bob = { x: 0, y: Length * Math.cos(angle) + origin.y };
 
-  t = 0
-  origin = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
- 
-  requiredElapsed = 1.0 / 60;
-  originVelocityLeftX = 0;
-  originVelocityRightX = 0;
-
-  angle = PI/4
-  
-  m = 0.6
-  g = 9.81;
-  L = 250
-  R = 1/2 * L
-  I = 1/3 * m * Math.pow(L, 2)
-  T = 2 * PI * Math.sqrt(I / (m * g * R))
-  bob = { x: 0, y: L };
-  resize();
-  animate();
-}
-
-
-function animate(now) {
+function animate(timestamp) {
+  const dt = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
   context.clearRect(0, 0, canvas.width, canvas.height);
 
   // Line from origin to bob
@@ -68,43 +49,23 @@ function animate(now) {
   context.fillStyle = "red";
   context.fill();
   context.stroke();
+  origin.x += (originVelocityRightX + originVelocityLeftX) * dt;
+  const angularAcceleration = -(gravity / Length) * Math.sin(angle) 
+                              / momentOfInertia;
 
-  if (!lastTime) {
-    lastTime = now;
-  }
-  let elapsed = now - lastTime;
+  angularVelocity += angularAcceleration * dt;
+  angularVelocity *= damping; 
+  angle += angularVelocity * dt;
+ 
+  context.font = "30px Arial";
+  context.fillText(
+    JSON.stringify(Math.floor(angle * (180 / Math.PI))) + "°",
+    window.innerWidth / 2,
+    50
+  );
 
-  if (elapsed > requiredElapsed) {
-
-    if (origin.x - 100 > 0) {
-      origin.x += originVelocityLeftX * elapsed;
-    }
-    if (origin.x + 90 < context.canvas.width) {
-      origin.x += originVelocityRightX * elapsed;
-    }
-
-
-    t += 0.01 * elapsed
-
-
-    angle = Math.cos((((2 * PI) / T) * t ) + 0.1);
-
-    context.font = "30px Arial";
-    context.fillText(
-      JSON.stringify(Math.floor(angle * (180 / Math.PI))) + "°",
-      window.innerWidth / 2,
-      50
-    );
-
-    //console.log(Math.floor(angle * (180 / Math.PI)));
-    
-    
-    bob.x = L * Math.sin(angle) + origin.x;
-    bob.y = L * Math.cos(angle) + origin.y;
-
-    
-    lastTime = now;
-  }
+  bob.x = Length * Math.sin(angle) + origin.x;
+  bob.y = Length * Math.cos(angle) + origin.y;
   requestAnimationFrame(animate);
 }
 
@@ -120,10 +81,10 @@ window.addEventListener("touchmove", (event) => {
 
   if (deltaX > 0) {
     // Sliding to the right
-    originVelocityRightX = 1;
+    originVelocityRightX = 1000;
   } else if (deltaX < 0) {
     // Sliding to the left
-    originVelocityLeftX = -1;
+    originVelocityLeftX -= 1000;
   }
   startX = currentX;
 });
@@ -135,9 +96,9 @@ window.addEventListener("touchend", (event) => {
 
 window.addEventListener("keydown", (event) => {
   if (event.code === "ArrowLeft") {
-    originVelocityLeftX = -1;
+    originVelocityLeftX = -1000;
   } else if (event.code === "ArrowRight") {
-    originVelocityRightX = 1;
+    originVelocityRightX = 1000;
   }
 });
 
@@ -155,9 +116,10 @@ function resize() {
   context.canvas.height = window.innerHeight;
   origin.x = canvas.width / 2;
   origin.y = canvas.height / 2;
-  bob.x = L * Math.sin(angle) + origin.x;
-  bob.y = L * Math.cos(angle) + origin.y;
+  bob.x = Length * Math.sin(angle) + origin.x;
+  bob.y = Length * Math.cos(angle) + origin.y;
 }
 
 window.addEventListener("resize", resize);
-document.addEventListener("DOMContentLoaded", init);
+resize();
+requestAnimationFrame(animate);
