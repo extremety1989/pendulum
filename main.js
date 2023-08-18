@@ -92,7 +92,7 @@ function animate(now) {
     }
 
     smallChange = 0
-    t += 1
+    t += 0.01 * elapsed
 
 
     angle = Math.cos((((2 * PI) / T) * t ) + 0.1);
