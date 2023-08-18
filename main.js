@@ -45,6 +45,7 @@ function init() {
   animate();
 }
 
+
 function animate(now) {
   context.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -92,8 +93,10 @@ function animate(now) {
 
     smallChange = 0
     t += 1
+
+
     angle = Math.cos((((2 * PI) / T) * t ) + 0.1);
-  
+    
     context.font = "30px Arial";
     context.fillText(
       JSON.stringify(Math.floor(angle * (180 / Math.PI))) + "°",
