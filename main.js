@@ -23,10 +23,6 @@ const render = Render.create({
 });
 
 const cartWidth = 100;
-const defaultCategory = 0x0001;
-
-// Create a ground and a cart-pole system
-
 
 const cart = Bodies.rectangle(400, innerHeight/2, cartWidth, 20, { isStatic: true, render: { fillStyle: '#f55a3c' } });
 
@@ -58,21 +54,38 @@ Matter.Runner.run(engine);
 // Start rendering
 Render.run(render);
 
-const cartSpeed = 10; // Adjust the cart's speed as needed
+
+// Flag to track key presses
+let isLeftKeyDown = false;
+let isRightKeyDown = false;
+const cartSpeed = 40; // Adjust the cart's speed as needed
 
 document.addEventListener("keydown", (event) => {
   const key = event.key;
 
   if (key === "ArrowLeft") {
-    if(cart.position.x > 50){
-      Matter.Body.translate(cart, { x: -cartSpeed, y: 0 });
-    }
-
+    isLeftKeyDown = true;
   } else if (key === "ArrowRight") {
-
-  if(cart.position.x < innerWidth - 50){
-    Matter.Body.translate(cart, { x: cartSpeed, y: 0 });
+    isRightKeyDown = true;
   }
- 
+});
+
+document.addEventListener("keyup", (event) => {
+  const key = event.key;
+
+  if (key === "ArrowLeft") {
+    isLeftKeyDown = false;
+  } else if (key === "ArrowRight") {
+    isRightKeyDown = false;
+  }
+});
+
+// Update cart position based on key presses
+Matter.Events.on(engine, "beforeUpdate", () => {
+  if (isLeftKeyDown && cart.position.x > 50) {
+    Matter.Body.translate(cart, { x: -cartSpeed, y: 0 });
+  }
+  if (isRightKeyDown && cart.position.x < innerWidth - 50) {
+    Matter.Body.translate(cart, { x: cartSpeed, y: 0 });
   }
 });
