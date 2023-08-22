@@ -22,13 +22,12 @@ const render = Render.create({
   },
 });
 
-const cartWidth = 100;
 
-const cart = Bodies.rectangle(400, innerHeight/2, cartWidth, 20, { isStatic: true, render: { fillStyle: '#f55a3c' } });
+const cart = Bodies.rectangle(400, innerHeight/2, 100, 20, { isStatic: true, render: { fillStyle: '#f55a3c' } });
 
 
 const pole = Bodies.rectangle(400, 520, 50, 50, {
-  frictionAir: 0.001,
+  restitution: 0.5, density: 0.001,
   collisionFilter: {
     category: 0x0002
   }
@@ -58,7 +57,7 @@ Render.run(render);
 // Flag to track key presses
 let isLeftKeyDown = false;
 let isRightKeyDown = false;
-const cartSpeed = 40; // Adjust the cart's speed as needed
+const cartSpeed = 400; // Adjust the cart's speed as needed
 
 document.addEventListener("keydown", (event) => {
   const key = event.key;
@@ -80,12 +79,28 @@ document.addEventListener("keyup", (event) => {
   }
 });
 
-// Update cart position based on key presses
-Matter.Events.on(engine, "beforeUpdate", () => {
-  if (isLeftKeyDown && cart.position.x > 50) {
-    Matter.Body.translate(cart, { x: -cartSpeed, y: 0 });
-  }
-  if (isRightKeyDown && cart.position.x < innerWidth - 50) {
-    Matter.Body.translate(cart, { x: cartSpeed, y: 0 });
+// Time variables for delta time calculation
+let lastTime = 0;
+let accumulatedTime = 0;
+const fixedTimeStep = 1000 / 60; // Target frame rate of 60 FPS
+
+
+// Update cart position based on key presses and delta time
+Matter.Events.on(engine, "beforeUpdate", (event) => {
+  const currentTime = event.timestamp;
+  const deltaTime = currentTime - lastTime;
+  lastTime = currentTime;
+
+  accumulatedTime += deltaTime;
+
+  while (accumulatedTime >= fixedTimeStep) {
+    if (isLeftKeyDown && cart.position.x > 50) {
+      Matter.Body.translate(cart, { x: -cartSpeed * (fixedTimeStep / 1000), y: 0 });
+    }
+    if (isRightKeyDown && cart.position.x < innerWidth - 50) {
+      Matter.Body.translate(cart, { x: cartSpeed * (fixedTimeStep / 1000), y: 0 });
+    }
+
+    accumulatedTime -= fixedTimeStep;
   }
 });
