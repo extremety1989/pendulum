@@ -123,8 +123,9 @@ document.addEventListener("keyup", (event) => {
 const randomValue = (minValue, maxValue) => { return Math.random() * (maxValue - minValue) + minValue }
 
 let prevAngle = 0
-let pGain = undefined
-let dGain = undefined
+let pGain = randomValue(0.005, 0.001)
+let dGain = randomValue(0.0025, 0.001)
+let error = 0 
 let solve = false
 let lastTime = 0;
 let accumulatedTime = 0;
@@ -152,14 +153,21 @@ Matter.Events.on(engine, "beforeUpdate", (event) => {
     let dt = 1;
     let angleV = (angle - prevAngle) / dt;
     prevAngle = angle;
-  
-    let error = 0 - angle;
+    
+    error = 0 - angle;
 
     if(solve){
-      pGain = randomValue(0.005, 0.001)
-      dGain = randomValue(0.0025, 0.001)
+
+      if(Math.abs(error) < 0.001 || Math.abs(error) > 1.0){
+ 
+        pGain += error * 0.0001
+        dGain += error * 0.0001
+      }
+
+
       let fx = -1 * pGain * error - dGain * -angleV;
-      console.log(fx);
+      fx = Math.min(Math.max(fx, -0.0033), 0.0028);
+  
       const force = {x: fx, y: 0};
       Matter.Body.applyForce(cart, cart.position, force);
     }
