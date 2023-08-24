@@ -24,11 +24,9 @@ const render = Render.create({
 
 let restLength = 100;
 
-const cart = Bodies.rectangle(200, 240, 40, 20, {
-  friction: 0,
-  restitution: 0,
-  angle: 0,
-  isStatic: false,
+const cart = Bodies.rectangle(200, innerWidth/2, 40, 20, {
+
+  isStatic: true,
   render: { fillStyle: '#f55a3c' }
 });
 
@@ -52,39 +50,9 @@ const poleConstraint = Constraint.create({
   stiffness: 1,
 });
 
-let ground = Bodies.rectangle(0, innerHeight / 2, innerWidth * 2, 10, {
-  friction: 0,
-  restitution: 0.5,
-  angle: 0,
-  isStatic: true,
-  collisionFilter: {
-    mask: 0x0001
-  }
-});
-
-
-let leftWall = Bodies.rectangle(5, 0, 100, innerHeight, {
-  friction: 0,
-  restitution: 1,
-  angle: 0,
-  isStatic: true,
-  collisionFilter: {
-    mask: 0x0001
-  }
-});
-
-let rightWall = Bodies.rectangle(innerWidth, 0, 100, innerHeight, {
-  friction: 0,
-  restitution: 1,
-  angle: 0,
-  isStatic: true,
-  collisionFilter: {
-    mask: 0x0001
-  }
-});
 
 // Add all bodies and constraints to the world
-World.add(engine.world, [cart, pole, ground, rightWall, leftWall]);
+World.add(engine.world, [cart, pole]);
 World.add(engine.world, poleConstraint);
 
 // Start the engine
@@ -123,17 +91,17 @@ document.addEventListener("keyup", (event) => {
 const randomValue = (minValue, maxValue) => { return Math.random() * (maxValue - minValue) + minValue }
 
 let prevAngle = 0
-let pGain = randomValue(0.005, 0.001)
-let dGain = randomValue(0.0025, 0.001)
+let pGain = randomValue(10, 60)
+let dGain = randomValue(5, 60)
 let error = 0 
 let solve = false
 let lastTime = 0;
 let accumulatedTime = 0;
 const fixedTimeStep = 1000 / 60; // Target frame rate of 60 FPS
 const canvas = document.getElementsByTagName("canvas")[0] // Replace 'canvas' with your canvas element's ID
+
 const ctx = canvas.getContext('2d');
-ctx.strokeStyle = 'rgb(255, 255, 255)'; // Set stroke color to white
-ctx.lineWidth = 4; // Set stroke weight
+
 
 // Update cart position based on key presses and delta time
 Matter.Events.on(engine, "beforeUpdate", (event) => {
@@ -157,34 +125,32 @@ Matter.Events.on(engine, "beforeUpdate", (event) => {
     error = 0 - angle;
 
     if(solve){
-
-      if(Math.abs(error) < 0.001 || Math.abs(error) > 1.0){
- 
-        pGain += error * 0.0001
-        dGain += error * 0.0001
+console.log(Math.abs(error));
+      if(Math.abs(error) > 0.01){
+        pGain += error * 1.4
+        dGain += error * 1.1
       }
 
 
       let fx = -1 * pGain * error - dGain * -angleV;
-      fx = Math.min(Math.max(fx, -0.0033), 0.0028);
-  
-      const force = {x: fx, y: 0};
-      Matter.Body.applyForce(cart, cart.position, force);
+      fx = Math.min(Math.max(fx, -80), 80);
+      // console.log(fx);
+      Matter.Body.translate(cart, { x: fx, y: 0 });
     }
 
    
     if (isLeftKeyDown) {
-      const force = { x: -0.002, y: 0 }
-      Matter.Body.applyForce(cart, cart.position, force);
+      Matter.Body.translate(cart, { x: -80 * (deltaTime / 100), y: 0 });
     }
     if (isRightKeyDown) {
-      const force = { x: 0.002, y: 0 }
-      Matter.Body.applyForce(cart, cart.position, force);
+      Matter.Body.translate(cart, { x: 80 * (deltaTime / 100), y: 0 });
     }
 
     ctx.beginPath();
     ctx.moveTo(cart.position.x, cart.position.y);
     ctx.lineTo(pole.position.x, pole.position.y);
+    ctx.strokeStyle = 'rgb(255, 255, 255)'; // Set stroke color to white
+    ctx.lineWidth = 4; // Set stroke weight
     ctx.stroke();
 
     accumulatedTime -= fixedTimeStep;
