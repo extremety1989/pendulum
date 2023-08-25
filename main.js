@@ -1,169 +1,166 @@
 import "./style.css";
 
 
-import * as Matter from "matter-js";
-
-const Engine = Matter.Engine,
-  Render = Matter.Render,
-  World = Matter.World,
-  Bodies = Matter.Bodies,
-  Constraint = Matter.Constraint;
-
-const engine = Engine.create();
-
-// Create a rendering context
-const render = Render.create({
-  element: document.getElementById("app"),
-  engine: engine,
-  options: {
-    width: innerWidth,
-    height: innerHeight,
-    wireframes: false,
-  },
-});
-
-let restLength = 100;
-
-const cart = Bodies.rectangle(200, innerWidth/2, 40, 20, {
-
-  isStatic: true,
-  render: { fillStyle: '#f55a3c' }
-});
-
-cart.w = 40;
-cart.h = 20;
-
-const pole = Bodies.rectangle(cart.position.x, cart.position.y - restLength, 20, 20, {
-  friction: 0,
-  restitution: 0.5,
-  isStatic: false,
-  collisionFilter: {
-    category: 0x0002
-  }
-});
-
-// Create constraints to attach the pole to the cart
-const poleConstraint = Constraint.create({
-  bodyA: cart,
-  bodyB: pole,
-  length: restLength,
-  stiffness: 1,
-});
+const canvas = document.createElement("canvas");
+document.getElementById("app").appendChild(canvas)
+const context = canvas.getContext("2d");
 
 
-// Add all bodies and constraints to the world
-World.add(engine.world, [cart, pole]);
-World.add(engine.world, poleConstraint);
+const Length = 250;
+const gravity = 9.8;
 
-// Start the engine
-Matter.Runner.run(engine);
+const cart = { x: canvas.width / 2, y: canvas.height / 2 };
 
-// Start rendering
-Render.run(render);
+let cartVelocityLeftX = 0;
+let cartVelocityRightX = 0;
 
+let angularVelocity = 0;
+let lastTime = 0;
 
-// Flag to track key presses
-let isLeftKeyDown = false;
-let isRightKeyDown = false;
+let angle = Math.PI / 2;
+let angularAcceleration = -(gravity / Length) * Math.sin(angle)
+const bob = { x: 0, y: Length * Math.cos(angle) + cart.y };
 
-document.addEventListener("keydown", (event) => {
-  const key = event.key;
-  if (key === "ArrowLeft") {
-    isLeftKeyDown = true;
-  } else if (key === "ArrowRight") {
-    isRightKeyDown = true;
-  } 
-  if (key === "l" || key === "L") {
-    ai()
-  } 
-});
-
-document.addEventListener("keyup", (event) => {
-  const key = event.key;
-
-  if (key === "ArrowLeft") {
-    isLeftKeyDown = false;
-  } else if (key === "ArrowRight") {
-    isRightKeyDown = false;
-  }
-});
-
+let solve = false
 const randomValue = (minValue, maxValue) => { return Math.random() * (maxValue - minValue) + minValue }
 
 let prevAngle = 0
-let pGain = randomValue(10, 60)
-let dGain = randomValue(5, 60)
+
+let pGain = 2.2
+let dGain = 2.4
 let error = 0 
-let solve = false
-let lastTime = 0;
-let accumulatedTime = 0;
-const fixedTimeStep = 1000 / 60; // Target frame rate of 60 FPS
-const canvas = document.getElementsByTagName("canvas")[0] // Replace 'canvas' with your canvas element's ID
 
-const ctx = canvas.getContext('2d');
+function animate(timestamp) {
+    const dt = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Center line
+    context.beginPath();
+    context.lineWidth = 1;
+    context.moveTo(90, cart.y);
+    context.lineTo(canvas.width - 75, cart.y);
+    context.strokeStyle = "black";
+    context.stroke();
+
+    // Draw cart
+    context.beginPath();
+    context.lineWidth = 1;
+    context.rect(cart.x, cart.y - 20, 80, 40);
+    context.fillStyle = "red";
+    context.fill();
+    context.strokeStyle = "black";
+    context.stroke();
 
 
-// Update cart position based on key presses and delta time
-Matter.Events.on(engine, "beforeUpdate", (event) => {
-  const currentTime = event.timestamp;
-  const deltaTime = currentTime - lastTime;
-  lastTime = currentTime;
-
-  accumulatedTime += deltaTime;
-
-  while (accumulatedTime >= fixedTimeStep) {
+    // Line from cart to bob
+    context.beginPath();
+    context.lineWidth = 10;
+    context.moveTo(cart.x + 40, cart.y);
+    context.lineTo(bob.x, bob.y);
+    context.strokeStyle = "blue";
+    context.stroke();
 
 
-    let arm = { x: 0, y: 0 }
-    arm.x = pole.position.x - cart.position.x;
-    arm.y = pole.position.y - cart.position.y;
-    let angle = Math.atan2(arm.y, arm.x) + Math.PI / 2;
-    let dt = 1;
-    let angleV = (angle - prevAngle) / dt;
-    prevAngle = angle;
+
+    // Draw bob
+    context.beginPath();
+    context.lineWidth = 1;
+    context.arc(bob.x, bob.y, 20, 0, 2 * Math.PI);
+    context.fillStyle = "red";
+    context.fill();
+    context.strokeStyle = "black";
+    context.stroke();
+
+    // Handle cart velocity
+    let dx = (cartVelocityRightX + cartVelocityLeftX) * dt;
+    let newX = cart.x + dx
+    if(newX >= 80 && newX <= canvas.width - 151){
+        cart.x += dx
+    }
+ 
+
+    // Calculate angular acceleration
+    angularAcceleration = -(gravity / Length) * Math.sin(angle)
+    if(newX >= 80 && newX <= canvas.width - 151){
+        angularAcceleration += dx * 0.05
+    }
+
+    // Update angular velocity and angle
+    angularVelocity += angularAcceleration
     
-    error = 0 - angle;
+    dx *= 0.99
+    angularVelocity *= 0.99;
 
-    if(solve){
-console.log(Math.abs(error));
-      if(Math.abs(error) > 0.01){
-        pGain += error * 1.4
-        dGain += error * 1.1
-      }
+    angle += angularVelocity * dt;
 
 
-      let fx = -1 * pGain * error - dGain * -angleV;
-      fx = Math.min(Math.max(fx, -80), 80);
-      // console.log(fx);
-      Matter.Body.translate(cart, { x: fx, y: 0 });
-    }
-
+    error = (3.141592653589793 - angle ) + (638.5 - cart.x);
    
-    if (isLeftKeyDown) {
-      Matter.Body.translate(cart, { x: -80 * (deltaTime / 100), y: 0 });
-    }
-    if (isRightKeyDown) {
-      Matter.Body.translate(cart, { x: 80 * (deltaTime / 100), y: 0 });
+    if(solve){
+  
+        let angleV = (angle - prevAngle);
+        prevAngle = angle;
+  
+        let fx = pGain * error - dGain * -angleV;
+        console.log(fx);
+        // console.log(fx);
+        cart.x += fx;
     }
 
-    ctx.beginPath();
-    ctx.moveTo(cart.position.x, cart.position.y);
-    ctx.lineTo(pole.position.x, pole.position.y);
-    ctx.strokeStyle = 'rgb(255, 255, 255)'; // Set stroke color to white
-    ctx.lineWidth = 4; // Set stroke weight
-    ctx.stroke();
+    // Update bob position
 
-    accumulatedTime -= fixedTimeStep;
-  }
+    bob.x = Length * Math.sin(angle) + cart.x + 40;
+    bob.y = Length * Math.cos(angle) + cart.y;
+
+    requestAnimationFrame(animate);
+}
+
+// Event listeners
+window.addEventListener("keydown", (event) => {
+
+    if(event.code === "l" || event.code === "L" || event.code === "KeyL"){
+        ai()
+    }
+
+
+    if (event.code === "ArrowLeft") {
+        cartVelocityLeftX = -400;
+    } else if (event.code === "ArrowRight") {
+        cartVelocityRightX = 400;
+    }
 });
 
+window.addEventListener("keyup", (event) => {
+    if (event.code === "ArrowLeft") {
+        cartVelocityLeftX = 0;
+    } else if (event.code === "ArrowRight") {
+        cartVelocityRightX = 0;
+    }
+});
+
+// Resize canvas
+function resize() {
+    context.canvas.width = window.innerWidth;
+    context.canvas.height = window.innerHeight;
+    cart.x = canvas.width / 2;
+    cart.y = canvas.height / 2;
+    bob.x = Length * Math.sin(angle) + cart.x;
+    bob.y = Length * Math.cos(angle) + cart.y;
+}
+
+window.addEventListener("resize", resize);
+
+// Initialize
+resize();
+requestAnimationFrame(animate);
 
 
 
 function ai() {
-  if(!solve){
-    solve = true
-  }else{
-    solve = false
+    if(!solve){
+      solve = true
+    }else{
+      solve = false
+    }
   }
-}
