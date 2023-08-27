@@ -91,8 +91,9 @@ document.addEventListener("keyup", (event) => {
 const randomValue = (minValue, maxValue) => { return Math.random() * (maxValue - minValue) + minValue }
 
 let prevAngle = 0
-let pGain = randomValue(10, 60)
-let dGain = randomValue(5, 60)
+let pGain = 55
+let dGain = 45
+
 let error = 0 
 let solve = false
 let lastTime = 0;
@@ -127,15 +128,12 @@ Matter.Events.on(engine, "beforeUpdate", (event) => {
     if(solve){
 
       if(Math.abs(error) > 0.01){
-        pGain += error * 1.4
-        dGain += error * 1.1
+     
+        let fx = -1 * pGain * error - dGain * -angleV;
+        fx = Math.min(Math.max(fx, -80), 80);
+        Matter.Body.translate(cart, { x: fx, y: 0 });
       }
 
-
-      let fx = -1 * pGain * error - dGain * -angleV;
-      fx = Math.min(Math.max(fx, -80), 80);
-      // console.log(fx);
-      Matter.Body.translate(cart, { x: fx, y: 0 });
     }
 
    

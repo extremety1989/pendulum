@@ -6,29 +6,35 @@ document.getElementById("app").appendChild(canvas)
 const context = canvas.getContext("2d");
 
 
-const Length = 250;
+const Length = 300;
 const gravity = 9.8;
+const cartMass = 2
+const pendulumMass = 1 + cartMass
+let friction = 0.1
 
 const cart = { x: canvas.width / 2, y: canvas.height / 2 };
+let cartVelocity = 0.0
+const PI = Math.PI
+let poleAngle =  PI / 1;
+let poleVelocity = 0.0
+let angleVelocity = 0.0
+const pole = { x: 0,  y: 0};
 
-let cartVelocityLeftX = 0;
-let cartVelocityRightX = 0;
 
-let angularVelocity = 0;
+let cartLeft = 0;
+let cartRight = 0;
+
 let lastTime = 0;
 
-let angle = Math.PI / 2;
-let angularAcceleration = -(gravity / Length) * Math.sin(angle)
-const bob = { x: 0, y: Length * Math.cos(angle) + cart.y };
 
 let solve = false
-const randomValue = (minValue, maxValue) => { return Math.random() * (maxValue - minValue) + minValue }
 
 let prevAngle = 0
 
-let pGain = 2.2
-let dGain = 2.4
-let error = 0 
+let kp = -0.0127
+let kpd = -0.822
+let kt = 0.2234
+let ktd = 0.437
 
 function animate(timestamp) {
     const dt = (timestamp - lastTime) / 1000;
@@ -53,66 +59,55 @@ function animate(timestamp) {
     context.stroke();
 
 
-    // Line from cart to bob
+    // Pole
     context.beginPath();
     context.lineWidth = 10;
     context.moveTo(cart.x + 40, cart.y);
-    context.lineTo(bob.x, bob.y);
+    context.lineTo(pole.x, pole.y);
     context.strokeStyle = "blue";
     context.stroke();
-
 
 
     // Draw bob
     context.beginPath();
     context.lineWidth = 1;
-    context.arc(bob.x, bob.y, 20, 0, 2 * Math.PI);
-    context.fillStyle = "red";
+    context.arc(pole.x, pole.y, 15, 0, 2 * PI);
+    context.fillStyle = "blue";
     context.fill();
     context.strokeStyle = "black";
     context.stroke();
 
     // Handle cart velocity
-    let dx = (cartVelocityRightX + cartVelocityLeftX) * dt;
-    let newX = cart.x + dx
-    if(newX >= 80 && newX <= canvas.width - 151){
-        cart.x += dx
-    }
- 
+    let dx = (cartRight + cartLeft)
+    cart.x += dx * dt;
 
     // Calculate angular acceleration
-    angularAcceleration = -(gravity / Length) * Math.sin(angle)
-    if(newX >= 80 && newX <= canvas.width - 151){
-        angularAcceleration += dx * 0.05
-    }
-
-    // Update angular velocity and angle
-    angularVelocity += angularAcceleration
-    
-    dx *= 0.99
-    angularVelocity *= 0.99;
-
-    angle += angularVelocity * dt;
-
-
-    error = (3.141592653589793 - angle ) + (638.5 - cart.x);
+    const angularAcceleration =
+    (-gravity / Length) * Math.sin(poleAngle)
    
+    // Update angular velocity and angle
+    angleVelocity += angularAcceleration
+    poleAngle += angleVelocity * dt;
+
+    angleVelocity += ((dx * 40 * Math.cos(poleAngle)) / (pendulumMass * Length * Length));
+
     if(solve){
-  
-        let angleV = (angle - prevAngle);
-        prevAngle = angle;
-  
-        let fx = pGain * error - dGain * -angleV;
-        console.log(fx);
-        // console.log(fx);
-        cart.x += fx;
+
+        let error  = PI - poleAngle
+
+        if(Math.abs(error) > 0.01){
+          let fx = -kp * pole.x - kt * error - kpd * poleVelocity - ktd * angleVelocity
+          cart.x += fx;
+        }
+
     }
+   
+    cart.x += cartVelocity * dt
+    pole.x = cart.x + 40 + Length * Math.sin(poleAngle);
+    pole.y = cart.y + Length * Math.cos(poleAngle);
 
-    // Update bob position
-
-    bob.x = Length * Math.sin(angle) + cart.x + 40;
-    bob.y = Length * Math.cos(angle) + cart.y;
-
+    angleVelocity *= 0.99
+    cartVelocity *= 0.5
     requestAnimationFrame(animate);
 }
 
@@ -125,17 +120,17 @@ window.addEventListener("keydown", (event) => {
 
 
     if (event.code === "ArrowLeft") {
-        cartVelocityLeftX = -400;
+        cartLeft = -1200;
     } else if (event.code === "ArrowRight") {
-        cartVelocityRightX = 400;
+        cartRight = 1200;
     }
 });
 
 window.addEventListener("keyup", (event) => {
     if (event.code === "ArrowLeft") {
-        cartVelocityLeftX = 0;
+        cartLeft = 0;
     } else if (event.code === "ArrowRight") {
-        cartVelocityRightX = 0;
+        cartRight = 0;
     }
 });
 
@@ -145,8 +140,6 @@ function resize() {
     context.canvas.height = window.innerHeight;
     cart.x = canvas.width / 2;
     cart.y = canvas.height / 2;
-    bob.x = Length * Math.sin(angle) + cart.x;
-    bob.y = Length * Math.cos(angle) + cart.y;
 }
 
 window.addEventListener("resize", resize);
@@ -158,9 +151,6 @@ requestAnimationFrame(animate);
 
 
 function ai() {
-    if(!solve){
-      solve = true
-    }else{
-      solve = false
-    }
-  }
+    solve = !solve; // Toggle the value
+    console.log(solve ? "Solving" : "Stopped");
+}
