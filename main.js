@@ -6,35 +6,61 @@ document.getElementById("app").appendChild(canvas)
 const context = canvas.getContext("2d");
 
 
-const Length = 300;
-const gravity = 9.8;
-const cartMass = 2
-const pendulumMass = 1 + cartMass
+const Length = 250;
+const gravity = 99;
+
+const cartMass = 1.0
+const poleMass = 11.0
+const totalMass = cartMass + poleMass
+
+
 let friction = 0.1
 
 const cart = { x: canvas.width / 2, y: canvas.height / 2 };
 let cartVelocity = 0.0
 const PI = Math.PI
-let poleAngle =  PI / 1;
-let poleVelocity = 0.0
+let poleAngle =  PI + 0.01;
 let angleVelocity = 0.0
-const pole = { x: 0,  y: 0};
-
-
+const pole = { x: cart.x + 40 + Length * Math.sin(poleAngle),  
+               y: cart.y + Length * Math.cos(poleAngle)};
 let cartLeft = 0;
 let cartRight = 0;
-
 let lastTime = 0;
-
-
 let solve = false
 
-let prevAngle = 0
 
-let kp = -0.0127
-let kpd = -0.822
-let kt = 0.2234
-let ktd = 0.437
+function normalize(angle) {
+    while (angle > PI) {
+        angle -= 2 * PI
+    }
+    while (angle < -PI) {
+        angle += 2 * PI
+    }
+    return angle
+}
+
+
+let kP = 5; 
+let kI = 2.5; 
+let kD = 1.5;  
+
+let integralError = 0;
+let previousError = 0;
+
+
+function calculateControlInput(dt) {
+    const error = normalize(PI - poleAngle)
+    const P = kP * error;
+    integralError += error;
+
+    const I = kI * integralError;
+
+    const D = kD * (error - previousError);
+    previousError = error;
+    
+    return P + I + D;
+}
+
 
 function animate(timestamp) {
     const dt = (timestamp - lastTime) / 1000;
@@ -76,38 +102,34 @@ function animate(timestamp) {
     context.fill();
     context.strokeStyle = "black";
     context.stroke();
+    
+    if (solve) {
+        let fx = calculateControlInput(dt);
+        cartVelocity += fx;
+        // Calculate the force due to cart movement on the pole
+        const poleForce = (fx * 2.5 * Math.cos(poleAngle)) / (totalMass * Length);
+        angleVelocity += poleForce;
+    }
 
-    // Handle cart velocity
-    let dx = (cartRight + cartLeft)
-    cart.x += dx * dt;
+    let force = cartRight + cartLeft;
+    cartVelocity += (force - friction * cartVelocity) / cartMass;
+    cart.x += cartVelocity * dt;
 
-    // Calculate angular acceleration
-    const angularAcceleration =
-    (-gravity / Length) * Math.sin(poleAngle)
-   
-    // Update angular velocity and angle
-    angleVelocity += angularAcceleration
+
+    const angularAcceleration = (-gravity / Length) * Math.sin(poleAngle)
+    angleVelocity += angularAcceleration * 1;
     poleAngle += angleVelocity * dt;
 
-    angleVelocity += ((dx * 40 * Math.cos(poleAngle)) / (pendulumMass * Length * Length));
+    // Calculate the force due to cart movement on the pole
+    const poleForce = (force * Math.cos(poleAngle)) / (totalMass * Length);
+    angleVelocity += poleForce;
 
-    if(solve){
 
-        let error  = PI - poleAngle
-
-        if(Math.abs(error) > 0.01){
-          let fx = -kp * pole.x - kt * error - kpd * poleVelocity - ktd * angleVelocity
-          cart.x += fx;
-        }
-
-    }
-   
-    cart.x += cartVelocity * dt
     pole.x = cart.x + 40 + Length * Math.sin(poleAngle);
     pole.y = cart.y + Length * Math.cos(poleAngle);
 
-    angleVelocity *= 0.99
-    cartVelocity *= 0.5
+    angleVelocity *= 0.99;
+    cartVelocity *= 0.5;
     requestAnimationFrame(animate);
 }
 
@@ -117,12 +139,10 @@ window.addEventListener("keydown", (event) => {
     if(event.code === "l" || event.code === "L" || event.code === "KeyL"){
         ai()
     }
-
-
     if (event.code === "ArrowLeft") {
-        cartLeft = -1200;
+        cartLeft = -1000;
     } else if (event.code === "ArrowRight") {
-        cartRight = 1200;
+        cartRight = 1000;
     }
 });
 

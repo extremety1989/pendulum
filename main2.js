@@ -24,7 +24,7 @@ const render = Render.create({
 
 let restLength = 100;
 
-const cart = Bodies.rectangle(200, innerWidth/2, 40, 20, {
+const cart = Bodies.rectangle(innerWidth/2, innerHeight/2, 40, 20, {
 
   isStatic: true,
   render: { fillStyle: '#f55a3c' }
@@ -88,12 +88,10 @@ document.addEventListener("keyup", (event) => {
   }
 });
 
-const randomValue = (minValue, maxValue) => { return Math.random() * (maxValue - minValue) + minValue }
-
 let prevAngle = 0
 let pGain = 55
 let dGain = 45
-
+const PI = Math.PI
 let error = 0 
 let solve = false
 let lastTime = 0;
@@ -103,6 +101,34 @@ const canvas = document.getElementsByTagName("canvas")[0] // Replace 'canvas' wi
 
 const ctx = canvas.getContext('2d');
 
+function normalize(angle) {
+  while (angle > PI) {
+      angle -= 2 * PI
+  }
+  while (angle < -PI) {
+      angle += 2 * PI
+  }
+  return angle
+}
+
+const kP = 0.5;  
+const kI = 0.25; 
+const kD = 0.2;  
+let integralError = 0;
+let previousError = 0;
+
+function calculateControlInput(dt, angle) {
+  const error = normalize(PI - angle) 
+  const P = kP * error;
+  integralError += error;
+
+  const I = kI * integralError;
+
+  const D = kD * (error - previousError);
+  previousError = error;
+  
+  return P + I + D;
+}
 
 // Update cart position based on key presses and delta time
 Matter.Events.on(engine, "beforeUpdate", (event) => {
@@ -118,22 +144,17 @@ Matter.Events.on(engine, "beforeUpdate", (event) => {
     let arm = { x: 0, y: 0 }
     arm.x = pole.position.x - cart.position.x;
     arm.y = pole.position.y - cart.position.y;
-    let angle = Math.atan2(arm.y, arm.x) + Math.PI / 2;
-    let dt = 1;
-    let angleV = (angle - prevAngle) / dt;
+    let angle = Math.atan2(arm.y, arm.x) + PI / 2;
+
+    let angleV = (angle - prevAngle) / deltaTime;
     prevAngle = angle;
     
-    error = 0 - angle;
+
 
     if(solve){
-
-      if(Math.abs(error) > 0.01){
-     
-        let fx = -1 * pGain * error - dGain * -angleV;
-        fx = Math.min(Math.max(fx, -80), 80);
-        Matter.Body.translate(cart, { x: fx, y: 0 });
-      }
-
+      let fx = calculateControlInput(deltaTime, angle)
+      
+      Matter.Body.translate(cart, { x: fx, y: 0 });
     }
 
    
@@ -143,13 +164,6 @@ Matter.Events.on(engine, "beforeUpdate", (event) => {
     if (isRightKeyDown) {
       Matter.Body.translate(cart, { x: 80 * (deltaTime / 100), y: 0 });
     }
-
-    ctx.beginPath();
-    ctx.moveTo(cart.position.x, cart.position.y);
-    ctx.lineTo(pole.position.x, pole.position.y);
-    ctx.strokeStyle = 'rgb(255, 255, 255)'; // Set stroke color to white
-    ctx.lineWidth = 4; // Set stroke weight
-    ctx.stroke();
 
     accumulatedTime -= fixedTimeStep;
   }
