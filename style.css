@@ -11,3 +11,23 @@ body, html {
   width: 100vw;
   height: 100vh;
 }
+
+svg {
+    position: absolute;
+    left: 40%;
+    bottom: 40%;
+    width: 30rem;
+    height: 23rem;
+    overflow: visible;
+    pointer-events: none;
+}
+
+svg * {
+    fill: #eee;
+    stroke-width: 1;
+    stroke: black;
+}
+
+.top-circle {
+    transform: translateX( 0px ) translateY( -65px );
+}

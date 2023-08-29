@@ -111,7 +111,7 @@ function normalize(angle) {
   return angle
 }
 
-const kP = 0.5;  
+const kP = -1;  
 const kI = 0.25; 
 const kD = 0.2;  
 let integralError = 0;
