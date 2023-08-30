@@ -1,9 +1,10 @@
 import "./style.css";
 
-// Pendulum simulation taken from
+// Pendulum simulation code taken from and slightly modified
 // https://codepen.io/oscarsaharoy/pen/LYbmVma
-
-document.getElementById("app").innerHTML = `     <svg width="100" height="100" viewbox="-50 -40 100 50" id="shadow" xmlns="http://www.w3.org/2000/svg" style="pointer-events: none">
+// You can find also here: https://scicomp.stackexchange.com/questions/23929/equation-of-motion-by-rk4-method
+//
+document.getElementById("app").innerHTML = `<svg width="100" height="100" viewbox="-50 -40 100 50" id="shadow" xmlns="http://www.w3.org/2000/svg" style="pointer-events: none">
             
 <mask id="pendulum-shadow">
     <rect class="pole" x="-12.5" y="-55" width="5" height="65" style="fill: white; stroke: none" transform-origin="-10 10" />
@@ -13,12 +14,8 @@ document.getElementById("app").innerHTML = `     <svg width="100" height="100" v
 </mask>
 
 <rect x="-300" y="-300" width="600" height="600" mask="url(#pendulum-shadow)" style="stroke: none; fill: rgba(0, 0, 0, 0.07)" />
-
-
 </svg>
-
 <svg width="100" height="100" viewbox="-50 -40 100 50" id="pendulum" xmlns="http://www.w3.org/2000/svg">
-
 <rect id="rail" x="-100" y="-2.5" width="200" height="5" />
 <line x1="-99.5" y1="-1.5" x2="99.5" y2="-1.5" style="stroke: white; pointer-events: none;" />
 <line x1="-100" y1="1.7" x2="100" y2="1.7" style="stroke: rgba(0, 0, 0, 0.15); pointer-events: none;" />
@@ -83,15 +80,16 @@ const pi = 3.1415926535897932384;
 const g = 9.81;                  // gravitational acceleration
 const l = 0.65;                  // pendulum length
 let dt = 0.016 / stepsPerFrame; // time step
-const M = 1;                     // pendulum mass
-const m = 1;                     // slider mass
-const f = 0;                     // slider friction
+const M = 10;                     // pendulum mass
+const m = 10;                     // slider mass
+const f = 1;                     // slider friction
 
-let t = 0.1, x = 0.1, xdot = 0.1, xddot = 0.1, theta = 0, thetadot = 0.001, thetaddot = 0.001, lastTime = 0, timestamp = 0;
+let t = 0.1, x = 0.1, xdot = 0, xddot = 0, theta = 0, thetadot = 0.0001, thetaddot = 0.0;
 let solve = false
-let cartRight, cartLeft
-const randomValue = (Math.random() - 0.5) / 2;
-thetadot += (randomValue + Math.sign(randomValue)) / l;
+let cartRight = 0, cartLeft = 0
+// const randomValue = (Math.random() - 0.5) / 2;
+// thetadot += (randomValue + Math.sign(randomValue)) / l;
+
 // vector operations
 const mul = (vec, k) => vec.map(v => v * k);
 const add = (vec1, vec2) => vec1.map((_, k) => vec1[k] + vec2[k]);
@@ -101,14 +99,6 @@ const norm = vec => mul(vec, 1 / mod(vec));
 const rotm90 = vec => [vec[1], -vec[0]];
 const crossmod = (vec1, vec2) => vec1[0] * vec2[1] - vec1[1] * vec2[0];
 
-
-//position
-let kp = 500;
-let kpd = 200
-
-//angle
-let kt = 200
-let ktd = 200
 
 function normalize(angle) {
 
@@ -121,16 +111,29 @@ function normalize(angle) {
     return angle
 }
 
+// using PID only
+
+const kPtheta = 100
+const kItheta = 0.02
+const kDtheta = 10
+let integralErrorTheta = 0;
+
+const kPx = 20
+const kIx = 0.02
+const kDx = 10
+let integralErrorX = 0;
 
 function calculateControlInput() {
-    const et = pi - theta
-    console.log(pi, theta);
-    if (Math.abs(et) > 0.01) {
-        return ((kp * x + kpd * xdot) + (kt * theta + ktd * thetaddot)) * et
-    } else {
-        return 0
+    console.log(Math.abs(thetadot));
+    if(Math.abs(thetadot) > 0.000001){
+   
+        integralErrorTheta += theta + thetadot;
+        integralErrorX += x + xdot;
+        const ITheta = kItheta * integralErrorTheta;
+        const IX = kIx * integralErrorX;
+        return ( kPtheta * theta  + ITheta + kDtheta * thetadot + kPx * x + IX + kDx * xdot ) 
     }
-
+    return 0
 }
 
 function stateDot(state) {
@@ -142,35 +145,30 @@ function stateDot(state) {
     let xddot = M / (m + M * Math.sin(theta) ** 2)
         * (l * thetadot ** 2 * Math.sin(theta)
             - g * Math.sin(theta) * Math.cos(theta))
-        - f * xdot + calculateControlInput();
+        - f * xdot + (solve ? calculateControlInput() : 0);
 
     let thetaddot = g / l * Math.sin(theta)
         - xddot / l * Math.cos(theta);
+   
+    // direction vector of the pendulum pole
+    const poleDir = [Math.sin(theta), Math.cos(theta)];
 
+    // this code is wrong
+    // displacement vector to pendulum from force
+    const dist = [l * Math.sin(theta),
+                  l * Math.cos(theta)];
 
+    // create a force on the pendulum
+    const springForce = mul(dist, 600);
+    const thetaddotInc = crossmod(springForce, poleDir) / (M * l);
+    const xddotInc = dot(springForce, [1, 0]) / m - thetaddotInc * M * l / m * Math.cos(theta);
 
-    // const force = solve ? calculateControlInput() : cartRight + cartLeft;
-    // // add forces if there is a keyborad press event
-    // if( force !== 0 ) {
+    // superpose the accelerations from the spring force onto those from the equations of motion
+    // and add damping too
+    thetaddot += thetaddotInc - thetadot * 40;
+    xddot += xddotInc - xdot * 40;
+    //console.log(springForce)
 
-    //     // direction vector of the pendulum pole
-    //     const poleDir = [ Math.sin(theta), Math.cos(theta) ];
-
-    //     // displacement vector to pendulum from mouse
-    //     const dist = [ force - x - l*Math.sin(theta),
-    //                    force     - l*Math.cos(theta) ];
-    //   //  console.log(force);
-    //     // create a force on the pendulum
-    //     const springForce  = mul( dist, 600 );
-    //     const thetaddotInc = crossmod( springForce, poleDir ) / ( M * l );
-    //     const xddotInc     = dot( springForce, [1,0] ) / m - thetaddotInc * M*l/m * Math.cos(theta);
-
-    //     // superpose the accelerations from the spring force onto those from the equations of motion
-    //     // and add damping too
-    //     thetaddot += thetaddotInc - thetadot * 40;
-    //     xddot     += xddotInc     - xdot     * 40;
-    //     // console.log(springForce)
-    // }
 
     // return stateDot vector
     return [thetadot, xdot, thetaddot, xddot];
@@ -184,11 +182,22 @@ function updateCoordinates() {
     // avoid division by 0
     if (l === 0) return;
 
-    // handle bounce off edge of rail
+    const xMin = -0.875; // Minimum allowed x position
+    const xMax = 0.875;  // Maximum allowed x position
+    x = Math.max(xMin, Math.min(x, xMax));
+
+    // // handle bounce off edge of rail
     const bounce = Math.abs(x) > 0.875 && xdot * x > 0;
-    
-    thetadot += 2 * xdot * (Math.cos(theta) ** 2) / (l * Math.cos(theta)) * bounce;
+    thetadot += 2 * xdot * (Math.cos(theta) ** 2) / 
+    (l * Math.cos(theta)) * bounce;
     xdot += -2 * xdot * bounce;
+
+    const force = cartRight + cartLeft;
+    // Apply the external force to affect xdot
+    const accelerationDueToForce = force / m; // F = ma
+    xdot += accelerationDueToForce * dt;
+    thetadot += 20 * xdot * (Math.cos(theta) ** 2) / 
+    (l * Math.cos(theta));
 
     // get state vector
     const state = [theta, x, thetadot, xdot];
@@ -205,7 +214,7 @@ function updateCoordinates() {
 
     // update the vars
     [theta, x, thetadot, xdot] = add(state, RK4step);
-
+   
     // keep theta between -pi and pi
     if (theta > pi) theta -= 2 * pi;
     if (theta < -pi) theta += 2 * pi;
@@ -232,21 +241,14 @@ function updateGraphics() {
 function mainloop(millis, lastMillis) {
     dt = (millis - lastMillis) / 1000 / stepsPerFrame;
 
-
-    // do the physics step as many times as needed 
     for (let s = 0; s < stepsPerFrame; ++s) {
         updateCoordinates();
     }
-
-    // update the graphics
     updateGraphics();
-
-   // console.log( 1/2*m*xdot**2 + 1/2*M*( ( xdot + l*thetadot*Math.cos(theta) )**2+ (l*thetadot*Math.sin(theta))**2 ) + M*g*l*Math.cos(theta) );
-
-    // call this again after 1 frame
     requestAnimationFrame(newMillis => mainloop(newMillis, millis));
 }
 mainloop(0, 0)
+
 // Event listeners
 window.addEventListener("keydown", (event) => {
 
@@ -254,9 +256,9 @@ window.addEventListener("keydown", (event) => {
         ai()
     }
     if (event.code === "ArrowLeft") {
-        cartLeft = -1;
+        cartLeft = -1000;
     } else if (event.code === "ArrowRight") {
-        cartRight = 1;
+        cartRight = 1000;
     }
 });
 
@@ -267,11 +269,6 @@ window.addEventListener("keyup", (event) => {
         cartRight = 0;
     }
 });
-
-
-
-
-
 
 
 function ai() {

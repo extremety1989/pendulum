@@ -111,14 +111,15 @@ function normalize(angle) {
   return angle
 }
 
-const kP = -1;  
-const kI = 0.25; 
-const kD = 0.2;  
+const kP = -10;  
+const kI = 0.001; 
+const kD = 0.002;  
 let integralError = 0;
 let previousError = 0;
 
-function calculateControlInput(dt, angle) {
-  const error = normalize(PI - angle) 
+function calculateControlInput(angleV) {
+  
+  const error = normalize(0 - angleV) 
   const P = kP * error;
   integralError += error;
 
@@ -152,7 +153,7 @@ Matter.Events.on(engine, "beforeUpdate", (event) => {
 
 
     if(solve){
-      let fx = calculateControlInput(deltaTime, angle)
+      let fx = calculateControlInput(-angleV)
       
       Matter.Body.translate(cart, { x: fx, y: 0 });
     }
@@ -174,8 +175,10 @@ Matter.Events.on(engine, "beforeUpdate", (event) => {
 
 function ai() {
   if(!solve){
+    console.log("solving");
     solve = true
   }else{
+    console.log("stopped");
     solve = false
   }
 }
